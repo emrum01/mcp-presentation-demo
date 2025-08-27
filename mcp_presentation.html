@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MCP サーバー活用術</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: 'Hiragino Sans', 'Yu Gothic', 'Meiryo', sans-serif;
+        background: linear-gradient(
+          135deg,
+          #1e3c72 0%,
+          #2a5298 50%,
+          #667eea 100%
+        );
+        color: white;
+        overflow: hidden;
+        line-height: 1.6;
+      }
+
+      .presentation-container {
+        width: 100vw;
+        height: 100vh;
+        position: relative;
+      }
+
+      .slide {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 50px;
+        opacity: 0;
+        transform: translateX(100px);
+        transition: all 0.6s ease-in-out;
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(15px);
+      }
+
+      .slide.active {
+        opacity: 1;
+        transform: translateX(0);
+      }
+
+      .slide.prev {
+        transform: translateX(-100px);
+      }
+
+      /* タイトルスライド */
+      .title-slide {
+        text-align: center;
+        background: linear-gradient(
+          135deg,
+          rgba(30, 60, 114, 0.9),
+          rgba(102, 126, 234, 0.9)
+        );
+      }
+
+      .title-slide h1 {
+        font-size: 3.5rem;
+        font-weight: 700;
+        margin-bottom: 30px;
+        background: linear-gradient(45deg, #ffd89b, #19547b);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .title-slide .subtitle {
+        font-size: 1.8rem;
+        margin-bottom: 40px;
+        opacity: 0.9;
+      }
+
+      .title-slide .author {
+        font-size: 1.2rem;
+        opacity: 0.7;
+      }
+
+      /* 共通スタイル */
+      h2 {
+        font-size: 2.8rem;
+        margin-bottom: 40px;
+        text-align: center;
+        color: #ffd89b;
+        font-weight: 600;
+      }
+
+      .content-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
+        max-width: 1200px;
+        width: 100%;
+      }
+
+      .card {
+        background: rgba(255, 255, 255, 0.15);
+        padding: 30px;
+        border-radius: 20px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        transform: translateY(30px);
+        opacity: 0;
+        animation: slideInUp 0.8s ease forwards;
+      }
+
+      .card h3 {
+        color: #ffd89b;
+        font-size: 1.5rem;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .card p {
+        font-size: 1.1rem;
+        opacity: 0.9;
+        line-height: 1.7;
+      }
+
+      .card:nth-child(1) {
+        animation-delay: 0.2s;
+      }
+      .card:nth-child(2) {
+        animation-delay: 0.4s;
+      }
+      .card:nth-child(3) {
+        animation-delay: 0.6s;
+      }
+      .card:nth-child(4) {
+        animation-delay: 0.8s;
+      }
+      .card:nth-child(5) {
+        animation-delay: 1s;
+      }
+      .card:nth-child(6) {
+        animation-delay: 1.2s;
+      }
+
+      @keyframes slideInUp {
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      .emoji {
+        font-size: 1.3em;
+      }
+
+      /* 課題スライド */
+      .problem-slide {
+        background: linear-gradient(
+          135deg,
+          rgba(220, 53, 69, 0.3),
+          rgba(108, 117, 125, 0.3)
+        );
+      }
+
+      .problem-list {
+        max-width: 900px;
+        width: 100%;
+      }
+
+      .problem-item {
+        background: rgba(220, 53, 69, 0.2);
+        margin-bottom: 20px;
+        padding: 25px;
+        border-radius: 15px;
+        border-left: 5px solid #dc3545;
+        transform: translateX(-50px);
+        opacity: 0;
+        animation: slideInRight 0.8s ease forwards;
+      }
+
+      .problem-item:nth-child(1) {
+        animation-delay: 0.2s;
+      }
+      .problem-item:nth-child(2) {
+        animation-delay: 0.4s;
+      }
+      .problem-item:nth-child(3) {
+        animation-delay: 0.6s;
+      }
+      .problem-item:nth-child(4) {
+        animation-delay: 0.8s;
+      }
+
+      @keyframes slideInRight {
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+
+      /* 解決策スライド */
+      .solution-slide {
+        background: linear-gradient(
+          135deg,
+          rgba(40, 167, 69, 0.3),
+          rgba(23, 162, 184, 0.3)
+        );
+      }
+
+      .solution-item {
+        background: rgba(40, 167, 69, 0.2);
+        border-left: 5px solid #28a745;
+      }
+
+      /* デモスライド */
+      .demo-slide {
+        background: linear-gradient(
+          135deg,
+          rgba(255, 193, 7, 0.3),
+          rgba(255, 87, 34, 0.3)
+        );
+      }
+
+      .demo-container {
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 15px;
+        padding: 30px;
+        font-family: 'Courier New', monospace;
+        max-width: 1000px;
+        width: 100%;
+        margin-top: 20px;
+      }
+
+      .demo-code {
+        color: #00ff88;
+        font-size: 1.1rem;
+        line-height: 1.8;
+        white-space: pre-wrap;
+      }
+
+      .demo-output {
+        color: #88ddff;
+        margin-top: 15px;
+        font-size: 1rem;
+      }
+
+      /* 導入手順 */
+      .steps-container {
+        display: flex;
+        justify-content: center;
+        gap: 40px;
+        max-width: 1200px;
+      }
+
+      .step {
+        text-align: center;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 30px;
+        border-radius: 20px;
+        flex: 1;
+        min-width: 250px;
+        transform: scale(0.9);
+        opacity: 0;
+        animation: popIn 0.8s ease forwards;
+      }
+
+      .step:nth-child(1) {
+        animation-delay: 0.2s;
+      }
+      .step:nth-child(2) {
+        animation-delay: 0.5s;
+      }
+      .step:nth-child(3) {
+        animation-delay: 0.8s;
+      }
+
+      @keyframes popIn {
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      .step-number {
+        width: 60px;
+        height: 60px;
+        background: #ffd89b;
+        color: #1e3c72;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin: 0 auto 20px;
+      }
+
+      .step h3 {
+        color: #ffd89b;
+        margin-bottom: 15px;
+      }
+
+      /* ナビゲーション */
+      .navigation {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 15px;
+        z-index: 1000;
+      }
+
+      .nav-btn {
+        padding: 15px 25px;
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        border-radius: 50px;
+        color: white;
+        cursor: pointer;
+        font-size: 1rem;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        transition: all 0.3s ease;
+        font-family: inherit;
+      }
+
+      .nav-btn:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateY(-2px);
+      }
+
+      .nav-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .slide-counter {
+        position: fixed;
+        top: 30px;
+        right: 30px;
+        background: rgba(0, 0, 0, 0.4);
+        padding: 12px 20px;
+        border-radius: 25px;
+        font-size: 1rem;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      /* レスポンシブ */
+      @media (max-width: 768px) {
+        .slide {
+          padding: 30px 20px;
+        }
+
+        h2 {
+          font-size: 2.2rem;
+        }
+
+        .title-slide h1 {
+          font-size: 2.8rem;
+        }
+
+        .content-grid {
+          grid-template-columns: 1fr;
+          gap: 20px;
+        }
+
+        .steps-container {
+          flex-direction: column;
+          gap: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="presentation-container">
+      <!-- スライド1: タイトル -->
+      <div class="slide active title-slide">
+        <h1>業務で使っている<br />MCPサーバー活用術</h1>
+      </div>
+
+      <!-- スライド2: 対象者 -->
+      <div class="slide">
+        <h2>📋 このセッションの対象者</h2>
+        <div class="content-grid">
+          <div class="card">
+            <h3><span class="emoji">👨‍💻</span> 開発者・エンジニア</h3>
+            <p>
+              日々のコーディング作業を効率化したい方。MCPに興味があるが使ったことがない方も歓迎！
+            </p>
+          </div>
+          <div class="card">
+            <h3><span class="emoji">🔰</span> MCP初心者</h3>
+            <p>
+              「MCPって何？」「聞いたことはあるけど...」という方向け。基礎から丁寧に説明します。
+            </p>
+          </div>
+          <div class="card">
+            <h3><span class="emoji">⚡</span> 効率化したい方</h3>
+            <p>
+              繰り返し作業にうんざり、開発スピードを上げたい、新しいツールを試してみたい方。
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- スライド4: MCPサーバーとは -->
+      <div class="slide">
+        <h2>🤖 MCPサーバーとは？</h2>
+        <div class="content-grid">
+          <div class="card">
+            <h3><span class="emoji">🔗</span> Model Context Protocol</h3>
+            <p>
+              AIモデルと外部システムを連携させる標準プロトコル。Claude等のAIに新しい機能を追加できます。
+            </p>
+          </div>
+          <div class="card">
+            <h3><span class="emoji">🛠️</span> 機能拡張</h3>
+            <p>
+              ファイル操作、API呼び出し、データベース接続など、AIができることを大幅に拡張します。
+            </p>
+          </div>
+          <div class="card">
+            <h3><span class="emoji">🔄</span> リアルタイム連携</h3>
+            <p>
+              チャット中にリアルタイムで外部システムとやり取り。情報取得や操作が瞬時に行われます。
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- スライド4: MCPサーバーとは -->
+      <div class="slide">
+        <h2>要するに、AIができることが増えます</h2>
+      </div>
+
+      <!-- スライド5: 紹介するMCP一覧 -->
+      <div class="slide problem-slide">
+        <h2>🗂️ 紹介するMCPサーバー</h2>
+        <div class="content-grid">
+          <div class="card">
+            <h3><span class="emoji">🧑‍🔬</span> serena</h3>
+            <p>
+              コードベースを深く解析し、シンボル検索や編集を高速化。リファクタリングやドキュメント生成をAIが強力にサポートします。
+            </p>
+          </div>
+          <div class="card">
+            <h3><span class="emoji">📚</span> context7</h3>
+            <p>
+              最新かつバージョン特定の公式ドキュメントやコード例を「その場で取得」してLLMに注入。旧データ由来の誤りやハルシネーションを回避し、正確な実装支援を行います（resolve-library-id
+              / get-library-docs）。
+            </p>
+          </div>
+          <div class="card">
+            <h3><span class="emoji">🌐</span> browser_tools</h3>
+            <p>
+              Chrome拡張＋Nodeサーバー＋MCPの連携で、スクリーンショット・コンソール/ネットワークログ取得やLighthouseベースのSEO/性能/アクセシビリティ監査を実行。ブラウザ計測結果をそのままAIに渡せます。
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- スライド7: ライブデモ -->
+      <div class="slide demo-slide">
+        <h2>🎬 実際の使用例デモ</h2>
+      </div>
+
+      <!-- スライド11: まとめ -->
+      <div class="slide title-slide">
+        <h1>🌟 MCPサーバーで<br />開発効率を向上！</h1>
+        <div class="subtitle">今すぐ始めて、<br />開発の未来を体験しよう</div>
+        <div class="author">ご質問・ご相談はお気軽に 🙋‍♂️</div>
+      </div>
+    </div>
+
+    <!-- ナビゲーション -->
+    <div class="navigation">
+      <button class="nav-btn" id="prevBtn" onclick="changeSlide(-1)">
+        ← 前へ
+      </button>
+      <button class="nav-btn" id="nextBtn" onclick="changeSlide(1)">
+        次へ →
+      </button>
+    </div>
+
+    <!-- スライドカウンター -->
+    <div class="slide-counter">
+      <span id="currentSlide">1</span> / <span id="totalSlides">11</span>
+    </div>
+
+    <script>
+      let currentSlideIndex = 0;
+      const slides = document.querySelectorAll('.slide');
+      const totalSlides = slides.length;
+
+      document.getElementById('totalSlides').textContent = totalSlides;
+
+      function updateSlideDisplay() {
+        slides.forEach((slide, index) => {
+          slide.classList.remove('active', 'prev');
+          if (index === currentSlideIndex) {
+            slide.classList.add('active');
+          } else if (index < currentSlideIndex) {
+            slide.classList.add('prev');
+          }
+        });
+
+        document.getElementById('currentSlide').textContent =
+          currentSlideIndex + 1;
+        document.getElementById('prevBtn').disabled = currentSlideIndex === 0;
+        document.getElementById('nextBtn').disabled =
+          currentSlideIndex === totalSlides - 1;
+      }
+
+      function changeSlide(direction) {
+        const newIndex = currentSlideIndex + direction;
+        if (newIndex >= 0 && newIndex < totalSlides) {
+          currentSlideIndex = newIndex;
+          updateSlideDisplay();
+        }
+      }
+
+      // キーボードナビゲーション
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ') {
+          e.preventDefault();
+          changeSlide(1);
+        } else if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          changeSlide(-1);
+        }
+      });
+
+      // 初期化
+      updateSlideDisplay();
+
+      // アニメーションの再実行
+      function restartAnimations() {
+        const activeSlide = document.querySelector('.slide.active');
+        const animatedElements = activeSlide.querySelectorAll(
+          '.card, .problem-item, .solution-item, .step'
+        );
+
+        animatedElements.forEach((el) => {
+          el.style.animation = 'none';
+          el.offsetHeight; // リフロー強制
+          el.style.animation = null;
+        });
+      }
+
+      // スライド変更時にアニメーションを再実行
+      const originalChangeSlide = changeSlide;
+      changeSlide = function (direction) {
+        originalChangeSlide(direction);
+        setTimeout(restartAnimations, 100);
+      };
+    </script>
+  </body>
+</html>
